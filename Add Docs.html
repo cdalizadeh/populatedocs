@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+    #dialog-button-bar,
+    #dialog-elements {
+    margin-bottom: 10px;
+    margin-top: 10px;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="main">
+      <form id="url-form">
+        <div class="block" id="dialog-list">
+          
+        </div>
+        <div class="block" id="dialog-elements">
+          <label for="dialog-title">
+            Enter the URL of the Document to populate:
+          </label>
+          <input style="width:99%" id="dialog-title">
+        </div>
+        <div class="block" id="dialog-button-bar">
+          <button type="submit" class="action" id="dialog-save-button">Search</button>
+          <button id="dialog-cancel-button" onclick="google.script.host.close()">Close</button>
+        </div>
+      </form>
+      <div id="dialog-status">
+      </div>
+    </div>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script>
+      $(function(){
+        $("#url-form").submit(onUrlSave);
+        showStatus("Ready.");
+      });
+    
+      function onUrlSave(){
+        $("#dialog-save-button").prop("disabled", true);
+        showStatus("Searching...");
+        var url = $("#dialog-title").val();
+        google.script.run
+            .withSuccessHandler(
+              function(msg){
+                if (msg){
+                  showStatus("Doc found. Upon form submission, this document will be populated with the submitted data.");
+                }
+                else{
+                  showStatus("This form is already linked to the Doc.")
+                }
+              }
+             )
+            .withFailureHandler(
+              function(msg){
+                showStatus("Could not find the Doc with this URL.", "error");
+              }
+             )
+            .addDoc(url);
+        $("#dialog-save-button").prop("disabled", false);
+        return false;
+      }
+    
+      function showStatus(msg, classId){
+        $("#dialog-status").removeClass().html(msg);
+        if (classId){
+          $("#dialog-status").addClass(classId);
+        }
+      }
+    </script>
+  </body>
+</html>

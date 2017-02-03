@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+    
+      #source-form {
+        margin-bottom: 10px;
+      }
+      
+      th, td {
+          padding: 15px;
+      }
+      
+      th {
+        vertical-align:bottom;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar branding-below">
+      <form id="source-form">
+        <table class="tg" id="settings-table">
+          <tr>
+            <th>Doc Name</th>
+            <th>Output Doc File Name</th>
+            <th>Default Date Format <a href="http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html">(?)</a></th>
+            <th>Set Submitter<br>As Owner</th>
+            <th>Auto-add Editors (comma-separated)</th>
+            <th></th>
+          </tr>
+        </table>
+        <div class="block" id="button-bar">
+          <button class="blue" id="save-settings">Save</button>
+          <button id="dialog-cancel-button" onclick="google.script.host.close()">Close</button>
+        </div>
+      </form>
+      <div id="dialog-status"></div>
+    </div>
+    
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    
+    <script>
+      $(function(){
+        showStatus("Working...");
+        getSettings();
+        $('#save-settings').click(saveSettings);
+      });
+      
+      function getSettings(){
+        google.script.run
+            .withSuccessHandler(
+              function(msg){
+                for (var i in msg){
+                  $("#settings-table").append('<tr id="row' + i + '"><td id="name' + i + '"></td><td><input type="text" size="30" id="filename' + i + '"></td><td><input type="text" size="15" id="date_format' + i + '"></td><td style="text-align:center"><input type="checkbox" id="set_submitter_as_owner' + i + '"></td><td><textarea rows="2" cols="32" id="recipients' + i + '" form="source-form"></textarea></td><td><button id="remove-doc' + i + '">Remove</button></td>');
+                  $('#remove-doc' + i).click(function(){
+                  showStatus("Working...");
+                    google.script.run
+                    .withSuccessHandler(
+                      function(msg, element){
+                        showStatus("Doc removed. This document is no longer linked to the form.");
+                        $(element).parent().parent().remove();
+                      }
+                    )
+                    .withFailureHandler(
+                      function(){
+                        showStatus("Error: failure to remove Doc.");
+                      }
+                    )
+                    .withUserObject(this)
+                    .removeDoc($(this).attr('id').substring(10));
+                  });
+                }
+                for (var i in msg){
+                  $('#name' + i).html(msg[i]["NAME"]);
+                  $('#filename' + i).val(msg[i]["FILENAME"]);
+                  $('#date_format' + i).val(msg[i]["DATE_FORMAT"]);
+                  $('#set_submitter_as_owner' + i).prop('checked', msg[i]["SET_SUBMITTER_AS_OWNER"]);
+                  $('#recipients' + i).val(msg[i]["RECIPIENTS"].join(",\n"));
+                }
+                if (i){
+                  showStatus("Ready.");
+                }
+                else{
+                  showStatus("No linked Docs found.");
+                }
+              }
+            )
+            .withFailureHandler(
+              function(msg){
+                showStatus("Error: settings could not be found.", "error");
+              }
+            )
+            .getDocList();
+      }
+      
+      function saveSettings(){
+        showStatus("Working...");
+        google.script.run
+            .withSuccessHandler(
+              function(msg){
+                for (var i in msg){
+                  msg[i]["FILENAME"] = $("#filename" + i).val();
+                  msg[i]["DATE_FORMAT"] = $("#date_format" + i).val();
+                  msg[i]["SET_SUBMITTER_AS_OWNER"] = $("#set_submitter_as_owner" + i).is(":checked");
+                  msg[i]["RECIPIENTS"] = ($("#recipients" + i).val()).replace(/ |\n|\r/g, "").split(",").filter(function (email){return email != "";});
+                }
+                google.script.run
+                  .withSuccessHandler(
+                    function(){
+                      showStatus("Settings Saved.");
+                    }
+                  )
+                  .withFailureHandler(
+                    function(){
+                      showStatus("Error: settings could not be saved.", "error");
+                    }
+                  )
+                  .updateDocList(msg);
+              }
+            )
+            .withFailureHandler(
+              function(){
+                showStatus("Error: settings could not be saved.", "error");
+              }
+            )
+            .getDocList();
+      }
+    
+      function showStatus(msg, classId){
+        $("#dialog-status").removeClass().html(msg);
+        if (classId){
+          $("#dialog-status").addClass(classId);
+        }
+      }
+    </script>
+  </body>
+</html>
